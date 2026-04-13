@@ -125,6 +125,48 @@ async def get_company_signals(ticker: str) -> list[dict]:
 
 
 @mcp.tool()
+async def get_company_daily_signals(
+    ticker: str,
+    from_date: str | None = None,
+    to_date: str | None = None,
+) -> list[dict]:
+    """
+    Get DAILY workforce stress signals for a company. This is the
+    quant-grade endpoint — each row is one calendar day.
+
+    Use this when the user asks for daily resolution, recent activity,
+    event detection, or "what was happening around date X". For trend
+    analysis over years, use get_company_signals (monthly) instead.
+
+    Each row contains:
+      - content_date (YYYY-MM-DD)
+      - post_count, comment_count, signal_volume
+      - avg_negativity, max_negativity
+      - layoff_signal_pct_raw / layoff_signal_pct_raw_raw: raw rates (unsmoothed)
+      - layoff_signal_pct / departure_intent_pct: Bayesian-smoothed, volume-weighted
+      - workforce_stress_index (0-100)
+      - signal_confidence + signal_confidence_label (LOW/MED/HIGH)
+      - dominant_sentiment
+
+    Only days with actual NLP data are returned (sparse representation).
+
+    Args:
+      ticker: Stock ticker, case-insensitive.
+      from_date: Start date YYYY-MM-DD (inclusive). Defaults to 90 days ago.
+      to_date: End date YYYY-MM-DD (inclusive). Defaults to today.
+    """
+    params: dict[str, Any] = {}
+    if from_date:
+        params["from"] = from_date
+    if to_date:
+        params["to"] = to_date
+    return await _get(
+        f"/company/{ticker.upper()}/signals/daily",
+        params=params or None,
+    )
+
+
+@mcp.tool()
 async def get_company_layoffs(ticker: str) -> list[dict]:
     """
     Get all confirmed layoff events for a company (announcement date,
